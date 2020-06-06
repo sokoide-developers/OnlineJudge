@@ -1,11 +1,10 @@
-from utils.constants import ContestRuleType  # noqa
 from django.db import models
 from django.utils.timezone import now
-from utils.models import JSONField
 
-from utils.constants import ContestStatus, ContestType
 from account.models import User
-from utils.models import RichTextField
+from utils.constants import ContestRuleType  # noqa
+from utils.constants import ContestStatus, ContestType
+from utils.models import JSONField, RichTextField
 
 
 class Contest(models.Model):
@@ -24,6 +23,9 @@ class Contest(models.Model):
     # 是否可见 false的话相当于删除
     visible = models.BooleanField(default=True)
     allowed_ip_ranges = JSONField(default=list)
+    virtual_contest = models.BooleanField(default=False)
+    # seconds
+    virtual_contest_duration = models.IntegerField(default=3600)
 
     @property
     def status(self):
@@ -46,9 +48,9 @@ class Contest(models.Model):
     # 是否有权查看problem 的一些统计信息 诸如submission_number, accepted_number 等
     def problem_details_permission(self, user):
         return self.rule_type == ContestRuleType.ACM or \
-               self.status == ContestStatus.CONTEST_ENDED or \
-               user.is_authenticated and user.is_contest_admin(self) or \
-               self.real_time_rank
+            self.status == ContestStatus.CONTEST_ENDED or \
+            user.is_authenticated and user.is_contest_admin(self) or \
+            self.real_time_rank
 
     class Meta:
         db_table = "contest"

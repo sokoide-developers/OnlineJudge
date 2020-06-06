@@ -1,7 +1,7 @@
 from utils.api import UsernameSerializer, serializers
 
-from .models import Contest, ContestAnnouncement, ContestRuleType
-from .models import ACMContestRank, OIContestRank
+from .models import (ACMContestRank, Contest, ContestAnnouncement,
+                     ContestRuleType, OIContestRank)
 
 
 class CreateConetestSeriaizer(serializers.Serializer):
@@ -14,6 +14,9 @@ class CreateConetestSeriaizer(serializers.Serializer):
     visible = serializers.BooleanField()
     real_time_rank = serializers.BooleanField()
     allowed_ip_ranges = serializers.ListField(child=serializers.CharField(max_length=32), allow_empty=True)
+    virtual_contest = serializers.BooleanField()
+    virtual_contest_duration = serializers.IntegerField()
+
 
 
 class EditConetestSeriaizer(serializers.Serializer):
@@ -26,6 +29,8 @@ class EditConetestSeriaizer(serializers.Serializer):
     visible = serializers.BooleanField()
     real_time_rank = serializers.BooleanField()
     allowed_ip_ranges = serializers.ListField(child=serializers.CharField(max_length=32))
+    virtual_contest = serializers.BooleanField()
+    virtual_contest_duration = serializers.IntegerField()
 
 
 class ContestAdminSerializer(serializers.ModelSerializer):

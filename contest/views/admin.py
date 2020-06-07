@@ -46,7 +46,6 @@ class ContestAPI(APIView):
     @validate_serializer(EditConetestSeriaizer)
     def put(self, request):
         data = request.data
-        print("data: {}".format(data))
         try:
             contest = Contest.objects.get(id=data.pop("id"))
             ensure_created_by(contest, request.user)

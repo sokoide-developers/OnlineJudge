@@ -1,22 +1,30 @@
 import io
+from datetime import datetime, timedelta
+
+import dateutil.parser
+import dateutil.relativedelta
+from django.core.cache import cache
+from django.http import HttpResponse
+from django.utils import timezone
+from django.utils.timezone import now
 
 import xlsxwriter
-from django.http import HttpResponse
-from django.utils.timezone import now
-from django.core.cache import cache
-
+from account.decorators import (check_contest_password,
+                                check_contest_permission, login_required)
+from account.models import AdminType
 from problem.models import Problem
 from utils.api import APIView, validate_serializer
-from utils.constants import CacheKey, CONTEST_PASSWORD_SESSION_KEY
-from utils.shortcuts import datetime2str, check_is_id
-from account.models import AdminType
-from account.decorators import login_required, check_contest_permission, check_contest_password
+from utils.constants import (CONTEST_PASSWORD_SESSION_KEY, CacheKey,
+                             ContestRuleType, ContestStatus)
+from utils.shortcuts import check_is_id, datetime2str
 
-from utils.constants import ContestRuleType, ContestStatus
-from ..models import ContestAnnouncement, Contest, OIContestRank, ACMContestRank
-from ..serializers import ContestAnnouncementSerializer
-from ..serializers import ContestSerializer, ContestPasswordVerifySerializer
-from ..serializers import OIContestRankSerializer, ACMContestRankSerializer
+from ..models import (ACMContestRank, Contest, ContestAnnouncement,
+                      ContestUser, OIContestRank)
+from ..serializers import (ACMContestRankSerializer,
+                           ContestAnnouncementSerializer,
+                           ContestPasswordVerifySerializer, ContestSerializer,
+                           ContestUserSerializer, CreateContestUserSeriaizer,
+                           OIContestRankSerializer)
 
 
 class ContestAnnouncementListAPI(APIView):
@@ -190,3 +198,39 @@ class ContestRankAPI(APIView):
         page_qs = self.paginate_data(request, qs)
         page_qs["results"] = serializer(page_qs["results"], many=True, is_contest_admin=is_contest_admin).data
         return self.success(page_qs)
+
+
+class ContestUserAPI(APIView):
+    @login_required
+    def get(self, request):
+        id = request.GET.get("contest_id")
+        userid = request.user.id
+
+        if not id or not check_is_id(id):
+            return self.error("Invalid parameter, id is required")
+        try:
+            contest_user = ContestUser.objects.get(contest=id, user=userid)
+        except ContestUser.DoesNotExist:
+            # return None if there is no start/end_time for the userid & contestid
+            return self.success(None)
+        data = ContestUserSerializer(contest_user).data
+        return self.success(data)
+
+    @login_required
+    # @validate_serializer(CreateContestUserSeriaizer)
+    def post(self, request):
+        data = request.data
+        data["user_id"] = request.user.id
+
+        try:
+            contest = Contest.objects.get(id=data["contest_id"])
+        except Contest.DoesNotExist:
+            return self.error("Contest does not exist")
+
+        NOW = now()
+        data["start_time"] = NOW
+        data["end_time"] = NOW + timedelta(0, contest.virtual_contest_duration)
+        print("data {}".format(data))
+
+        contestUser = ContestUser.objects.create(**data)
+        return self.success(CreateContestUserSeriaizer(contestUser).data)

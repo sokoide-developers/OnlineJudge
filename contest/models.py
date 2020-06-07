@@ -101,3 +101,23 @@ class ContestAnnouncement(models.Model):
     class Meta:
         db_table = "contest_announcement"
         ordering = ("-create_time",)
+
+
+class ContestUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    contest = models.ForeignKey(Contest, on_delete=models.CASCADE)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+
+    @property
+    def status(self):
+        if self.start_time > now():
+            return ContestStatus.CONTEST_NOT_START
+        elif self.end_time < now():
+            return ContestStatus.CONTEST_ENDED
+        else:
+            return ContestStatus.CONTEST_UNDERWAY
+
+    class Meta:
+        db_table = "contest_user"
+        ordering = ("-start_time",)

@@ -1,7 +1,7 @@
 from utils.api import UsernameSerializer, serializers
 
 from .models import (ACMContestRank, Contest, ContestAnnouncement,
-                     ContestRuleType, OIContestRank)
+                     ContestRuleType, ContestUser, OIContestRank)
 
 
 class CreateConetestSeriaizer(serializers.Serializer):
@@ -16,7 +16,6 @@ class CreateConetestSeriaizer(serializers.Serializer):
     allowed_ip_ranges = serializers.ListField(child=serializers.CharField(max_length=32), allow_empty=True)
     virtual_contest = serializers.BooleanField()
     virtual_contest_duration = serializers.IntegerField()
-
 
 
 class EditConetestSeriaizer(serializers.Serializer):
@@ -47,6 +46,36 @@ class ContestSerializer(ContestAdminSerializer):
     class Meta:
         model = Contest
         exclude = ("password", "visible", "allowed_ip_ranges")
+
+
+class CreateContestUserSeriaizer(serializers.Serializer):
+    contest_id = serializers.IntegerField()
+    user = serializers.SerializerMethodField()
+    # user = UsernameSerializer()
+    # user_id = serializers.IntegerField()
+    start_time = serializers.DateTimeField()
+    end_time = serializers.DateTimeField()
+
+    def get_user(self, obj):
+        return UsernameSerializer(obj.user).data
+
+
+class ContestUserAdminSerializer(serializers.ModelSerializer):
+    contest_id = serializers.IntegerField()
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ContestUser
+        fields = "__all__"
+
+    def get_user(self, obj):
+        return UsernameSerializer(obj.user).data
+
+
+class ContestUserSerializer(ContestUserAdminSerializer):
+    class Meta:
+        model = ContestUser
+        exclude = ()
 
 
 class ContestAnnouncementSerializer(serializers.ModelSerializer):

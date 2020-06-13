@@ -27,6 +27,9 @@ class User(AbstractBaseUser):
     username = models.TextField(unique=True)
     email = models.TextField(null=True)
     create_time = models.DateTimeField(auto_now_add=True, null=True)
+    
+    # # Personal Information Hide
+    # pi_hide = models.BooleanField(default=False)
     # One of UserType
     admin_type = models.TextField(default=AdminType.REGULAR_USER)
     problem_permission = models.TextField(default=ProblemPermission.NONE)
@@ -91,6 +94,7 @@ class UserProfile(models.Model):
     avatar = models.TextField(default=f"{settings.AVATAR_URI_PREFIX}/default.png")
     blog = models.URLField(null=True)
     mood = models.TextField(null=True)
+    pi_hide = models.BooleanField(null=True)
     github = models.TextField(null=True)
     school = models.TextField(null=True)
     major = models.TextField(null=True)

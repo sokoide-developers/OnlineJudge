@@ -92,6 +92,7 @@ class EditUserSerializer(serializers.Serializer):
     admin_type = serializers.ChoiceField(choices=(AdminType.REGULAR_USER, AdminType.ADMIN, AdminType.SUPER_ADMIN))
     problem_permission = serializers.ChoiceField(choices=(ProblemPermission.NONE, ProblemPermission.OWN,
                                                           ProblemPermission.ALL))
+    # pi_hide = serializers.BooleanField()
     open_api = serializers.BooleanField()
     two_factor_auth = serializers.BooleanField()
     is_disabled = serializers.BooleanField()
@@ -99,6 +100,7 @@ class EditUserSerializer(serializers.Serializer):
 
 class EditUserProfileSerializer(serializers.Serializer):
     real_name = serializers.CharField(max_length=32, allow_null=True, required=False)
+    pi_hide = serializers.BooleanField(allow_null=True, required=False)
     avatar = serializers.CharField(max_length=256, allow_blank=True, required=False)
     blog = serializers.URLField(max_length=256, allow_blank=True, required=False)
     mood = serializers.CharField(max_length=256, allow_blank=True, required=False)
@@ -106,7 +108,6 @@ class EditUserProfileSerializer(serializers.Serializer):
     school = serializers.CharField(max_length=64, allow_blank=True, required=False)
     major = serializers.CharField(max_length=64, allow_blank=True, required=False)
     language = serializers.CharField(max_length=32, allow_blank=True, required=False)
-
 
 class ApplyResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()

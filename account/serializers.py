@@ -1,6 +1,6 @@
 from django import forms
 
-from utils.api import serializers, UsernameSerializer
+from utils.api import UsernameSerializer, serializers
 
 from .models import AdminType, ProblemPermission, User, UserProfile
 
@@ -100,7 +100,7 @@ class EditUserSerializer(serializers.Serializer):
 
 class EditUserProfileSerializer(serializers.Serializer):
     real_name = serializers.CharField(max_length=32, allow_null=True, required=False)
-    pi_hide = serializers.BooleanField(allow_null=True, required=False)
+    pi_hide = serializers.NullBooleanField(required=False)
     avatar = serializers.CharField(max_length=256, allow_blank=True, required=False)
     blog = serializers.URLField(max_length=256, allow_blank=True, required=False)
     mood = serializers.CharField(max_length=256, allow_blank=True, required=False)
@@ -108,6 +108,7 @@ class EditUserProfileSerializer(serializers.Serializer):
     school = serializers.CharField(max_length=64, allow_blank=True, required=False)
     major = serializers.CharField(max_length=64, allow_blank=True, required=False)
     language = serializers.CharField(max_length=32, allow_blank=True, required=False)
+
 
 class ApplyResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()

@@ -1,15 +1,17 @@
 import hashlib
 import json
 import logging
+from datetime import datetime, timezone
 from urllib.parse import urljoin
 
 import requests
-from django.db import transaction, IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import F
 
 from account.models import User
 from conf.models import JudgeServer
-from contest.models import ContestRuleType, ACMContestRank, OIContestRank, ContestStatus
+from contest.models import (ACMContestRank, ContestRuleType, ContestStatus,
+                            ContestUser, OIContestRank)
 from options.options import SysOptions
 from problem.models import Problem, ProblemRuleType
 from problem.utils import parse_problem_template
@@ -18,6 +20,7 @@ from utils.cache import cache
 from utils.constants import CacheKey
 
 logger = logging.getLogger(__name__)
+logger.debug("* {} logger started {}".format(__name__, datetime.now()))
 
 
 # 继续处理在队列中的问题
@@ -98,6 +101,12 @@ class JudgeDispatcher(DispatcherBase):
         if self.contest_id:
             self.problem = Problem.objects.select_related("contest").get(id=problem_id, contest_id=self.contest_id)
             self.contest = self.problem.contest
+            logger.debug("JudgeDispatcher: contest: {}".format(self.contest))
+
+            self.contest_user = None
+            if self.contest.virtual_contest:
+                self.contest_user = ContestUser.objects.get(contest=self.contest.id, user=self.submission.user_id)
+                logger.debug("JudgeDispatcher: contest_user: {}".format(self.contest_user))
         else:
             self.problem = Problem.objects.get(id=problem_id)
 
@@ -123,6 +132,7 @@ class JudgeDispatcher(DispatcherBase):
             self.submission.statistic_info["score"] = score
 
     def judge(self):
+        logger.debug("* judge called")
         language = self.submission.language
         sub_config = list(filter(lambda item: language == item["name"], SysOptions.languages))[0]
         spj_config = {}
@@ -329,6 +339,7 @@ class JudgeDispatcher(DispatcherBase):
             problem.save(update_fields=["submission_number", "accepted_number", "statistic_info"])
 
     def update_contest_rank(self):
+        logger.debug("* update_contest_rank called")
         if self.contest.rule_type == ContestRuleType.OI or self.contest.real_time_rank:
             cache.delete(f"{CacheKey.contest_rank_cache}:{self.contest.id}")
 
@@ -354,6 +365,11 @@ class JudgeDispatcher(DispatcherBase):
 
     def _update_acm_contest_rank(self, rank):
         info = rank.submission_info.get(str(self.submission.problem_id))
+        logger.debug("* _update_acm_contest_rank called")
+        logger.debug("* info: {}".format(info))
+        logger.debug("* contest: {}".format(self.contest))
+        if self.contest.virtual_contest:
+            logger.debug("* contest_user: {}".format(self.contest_user))
         # 因前面更改过，这里需要重新获取
         problem = Problem.objects.select_for_update().get(contest_id=self.contest_id, id=self.problem.id)
         # 此题提交过
@@ -365,7 +381,10 @@ class JudgeDispatcher(DispatcherBase):
             if self.submission.result == JudgeStatus.ACCEPTED:
                 rank.accepted_number += 1
                 info["is_ac"] = True
-                info["ac_time"] = (self.submission.create_time - self.contest.start_time).total_seconds()
+                start_time = self.contest.start_time
+                if self.contest.virtual_contest:
+                    start_time = self.contest_user.start_time
+                info["ac_time"] = (self.submission.create_time - start_time).total_seconds()
                 rank.total_time += info["ac_time"] + info["error_number"] * 20 * 60
 
                 if problem.accepted_number == 1:
@@ -380,7 +399,10 @@ class JudgeDispatcher(DispatcherBase):
             if self.submission.result == JudgeStatus.ACCEPTED:
                 rank.accepted_number += 1
                 info["is_ac"] = True
-                info["ac_time"] = (self.submission.create_time - self.contest.start_time).total_seconds()
+                start_time = self.contest.start_time
+                if self.contest.virtual_contest:
+                    start_time = self.contest_user.start_time
+                info["ac_time"] = (self.submission.create_time - start_time).total_seconds()
                 rank.total_time += info["ac_time"]
 
                 if problem.accepted_number == 1:
@@ -388,10 +410,12 @@ class JudgeDispatcher(DispatcherBase):
 
             elif self.submission.result != JudgeStatus.COMPILE_ERROR:
                 info["error_number"] = 1
+        logger.debug("* updated info: {}".format(info))
         rank.submission_info[str(self.submission.problem_id)] = info
         rank.save()
 
     def _update_oi_contest_rank(self, rank):
+        logger.debug("** _update_oi_contest_rank called")
         problem_id = str(self.submission.problem_id)
         current_score = self.submission.statistic_info["score"]
         last_score = rank.submission_info.get(problem_id)

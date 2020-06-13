@@ -52,6 +52,9 @@ class Contest(models.Model):
             user.is_authenticated and user.is_contest_admin(self) or \
             self.real_time_rank
 
+    def __str__(self):
+        return('{} {} {} {} {}'.format(self.title, self.start_time, self.end_time, self.virtual_contest, self.virtual_contest_duration))
+
     class Meta:
         db_table = "contest"
         ordering = ("-start_time",)
@@ -73,6 +76,9 @@ class ACMContestRank(AbstractContestRank):
     # {"23": {"is_ac": True, "ac_time": 8999, "error_number": 2, "is_first_ac": True}}
     # key is problem id
     submission_info = JSONField(default=dict)
+
+    def __str__(self):
+        return('{} {} {} {} {} {}'.format(self.user, self.contest, self.submission_number, self.accepted_number, self.total_time, self.submission_info))
 
     class Meta:
         db_table = "acm_contest_rank"
@@ -117,6 +123,9 @@ class ContestUser(models.Model):
             return ContestStatus.CONTEST_ENDED
         else:
             return ContestStatus.CONTEST_UNDERWAY
+
+    def __str__(self):
+        return('{} {} {} {}'.format(self.user, self.contest, self.start_time, self.end_time))
 
     class Meta:
         db_table = "contest_user"

@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 import os
-import raven
 from copy import deepcopy
+
+import raven
+
 from utils.shortcuts import get_env
 
 production_env = get_env("OJ_ENV", "dev") == "production"
@@ -139,48 +141,49 @@ STATICFILES_DIRS = [os.path.join(DATA_DIR, "public")]
 
 LOGGING_HANDLERS = ['console', 'sentry'] if production_env else ['console']
 LOGGING = {
-   'version': 1,
-   'disable_existing_loggers': False,
-   'formatters': {
-       'standard': {
-           'format': '[%(asctime)s] - [%(levelname)s] - [%(name)s:%(lineno)d]  - %(message)s',
-           'datefmt': '%Y-%m-%d %H:%M:%S'
-       }
-   },
-   'handlers': {
-       'console': {
-           'level': 'DEBUG',
-           'class': 'logging.StreamHandler',
-           'formatter': 'standard'
-       },
-       'sentry': {
-           'level': 'ERROR',
-           'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
-           'formatter': 'standard'
-       }
-   },
-   'loggers': {
-       'django.request': {
-           'handlers': LOGGING_HANDLERS,
-           'level': 'ERROR',
-           'propagate': True,
-       },
-       'django.db.backends': {
-           'handlers': LOGGING_HANDLERS,
-           'level': 'ERROR',
-           'propagate': True,
-       },
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '[%(asctime)s] - [%(levelname)s] - [%(name)s:%(lineno)d]  - %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        }
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard'
+        },
+        'sentry': {
+            'level': 'ERROR',
+            'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
+            'formatter': 'standard'
+        }
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': LOGGING_HANDLERS,
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'django.db.backends': {
+            'handlers': LOGGING_HANDLERS,
+            'level': 'ERROR',
+            'propagate': True,
+        },
         'dramatiq': {
             'handlers': LOGGING_HANDLERS,
             'level': 'DEBUG',
             'propagate': False,
         },
-       '': {
-           'handlers': LOGGING_HANDLERS,
-           'level': 'WARNING',
-           'propagate': True,
-       }
-   },
+        '': {
+            'handlers': LOGGING_HANDLERS,
+            'level': 'WARNING',
+            # 'level': 'DEBUG',
+            'propagate': True,
+        }
+    },
 }
 
 REST_FRAMEWORK = {

@@ -1,14 +1,15 @@
 import io
+import logging
 from datetime import datetime, timedelta
 
 import dateutil.parser
 import dateutil.relativedelta
+import xlsxwriter
 from django.core.cache import cache
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.timezone import now
 
-import xlsxwriter
 from account.decorators import (check_contest_password,
                                 check_contest_permission, login_required)
 from account.models import AdminType
@@ -25,6 +26,8 @@ from ..serializers import (ACMContestRankSerializer,
                            ContestPasswordVerifySerializer, ContestSerializer,
                            ContestUserSerializer, CreateContestUserSeriaizer,
                            OIContestRankSerializer)
+
+logger = logging.getLogger(__name__)
 
 
 class ContestAnnouncementListAPI(APIView):
@@ -112,11 +115,14 @@ class ContestAccessAPI(APIView):
 
 class ContestRankAPI(APIView):
     def get_rank(self):
+        logger.debug("* get_rank {}".format(datetime.now()))
         if self.contest.rule_type == ContestRuleType.ACM:
-            return ACMContestRank.objects.filter(contest=self.contest,
-                                                 user__admin_type=AdminType.REGULAR_USER,
-                                                 user__is_disabled=False).\
+            result = ACMContestRank.objects.filter(contest=self.contest,
+                                                   user__admin_type=AdminType.REGULAR_USER,
+                                                   user__is_disabled=False).\
                 select_related("user").order_by("-accepted_number", "total_time")
+            logger.debug("* result {} {}".format(result, datetime.now()))
+            return result
         else:
             return OIContestRank.objects.filter(contest=self.contest,
                                                 user__admin_type=AdminType.REGULAR_USER,
@@ -132,6 +138,7 @@ class ContestRankAPI(APIView):
 
     @check_contest_permission(check_type="ranks")
     def get(self, request):
+        logger.debug("* get {} {}".format(request, datetime.now()))
         download_csv = request.GET.get("download_csv")
         force_refresh = request.GET.get("force_refresh")
         is_contest_admin = request.user.is_authenticated and request.user.is_contest_admin(self.contest)
@@ -139,6 +146,7 @@ class ContestRankAPI(APIView):
             serializer = OIContestRankSerializer
         else:
             serializer = ACMContestRankSerializer
+        logger.debug("* serializer {}".format(serializer))
 
         if force_refresh == "1" and is_contest_admin:
             qs = self.get_rank()
@@ -146,8 +154,12 @@ class ContestRankAPI(APIView):
             cache_key = f"{CacheKey.contest_rank_cache}:{self.contest.id}"
             qs = cache.get(cache_key)
             if not qs:
+                logger.debug("* qs not available")
                 qs = self.get_rank()
                 cache.set(cache_key, qs)
+            logger.debug("* qs {}".format(qs))
+            for q in qs:
+                logger.debug("* q {}".format(q))
 
         if download_csv:
             data = serializer(qs, many=True, is_contest_admin=is_contest_admin).data
@@ -201,7 +213,7 @@ class ContestRankAPI(APIView):
 
 
 class ContestUserAPI(APIView):
-    @login_required
+    @ login_required
     def get(self, request):
         id = request.GET.get("contest_id")
         userid = request.user.id
@@ -216,7 +228,7 @@ class ContestUserAPI(APIView):
         data = ContestUserSerializer(contest_user).data
         return self.success(data)
 
-    @login_required
+    @ login_required
     # @validate_serializer(CreateContestUserSeriaizer)
     def post(self, request):
         data = request.data

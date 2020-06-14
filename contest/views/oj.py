@@ -240,6 +240,10 @@ class ContestUserAPI(APIView):
             return self.error("Contest does not exist")
 
         NOW = now()
+
+        if NOW < contest.start_time:
+            return self.error("Contest not started yet")
+
         data["start_time"] = NOW
         data["end_time"] = NOW + timedelta(0, contest.virtual_contest_duration)
         print("data {}".format(data))

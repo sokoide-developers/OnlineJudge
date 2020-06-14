@@ -105,8 +105,12 @@ class JudgeDispatcher(DispatcherBase):
 
             self.contest_user = None
             if self.contest.virtual_contest:
-                self.contest_user = ContestUser.objects.get(contest=self.contest.id, user=self.submission.user_id)
-                logger.debug("JudgeDispatcher: contest_user: {}".format(self.contest_user))
+                # non-super user should have the entry, but super users don't
+                try:
+                    self.contest_user = ContestUser.objects.get(contest=self.contest.id, user=self.submission.user_id)
+                    logger.debug("JudgeDispatcher: contest_user: {}".format(self.contest_user))
+                except ContestUser.DoesNotExist:
+                    logger.debug("JudgeDispatcher: contest_user doesn't not exist for user_id: {}".format(self.submission.user_id))
         else:
             self.problem = Problem.objects.get(id=problem_id)
 
@@ -382,7 +386,7 @@ class JudgeDispatcher(DispatcherBase):
                 rank.accepted_number += 1
                 info["is_ac"] = True
                 start_time = self.contest.start_time
-                if self.contest.virtual_contest:
+                if self.contest.virtual_contest and self.contest_user is not None:
                     start_time = self.contest_user.start_time
                 info["ac_time"] = (self.submission.create_time - start_time).total_seconds()
                 rank.total_time += info["ac_time"] + info["error_number"] * 20 * 60
@@ -400,7 +404,7 @@ class JudgeDispatcher(DispatcherBase):
                 rank.accepted_number += 1
                 info["is_ac"] = True
                 start_time = self.contest.start_time
-                if self.contest.virtual_contest:
+                if self.contest.virtual_contest and self.contest_user is not None:
                     start_time = self.contest_user.start_time
                 info["ac_time"] = (self.submission.create_time - start_time).total_seconds()
                 rank.total_time += info["ac_time"]
